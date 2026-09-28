@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PEWAM: Keep the Effect, Drop the Actor</title>
+<meta name="description" content="PEWAM compiles a demonstration into an actor-free effect program of object keypoints, contact points and a terminal state; a world-action model with independently noised streams turns executing it into programming.">
+<meta property="og:title" content="Keep the Effect, Drop the Actor: Programmable Effect-to-Execution World-Action Models">
+<meta property="og:description" content="PEWAM compiles a demonstration into an actor-free effect program of object keypoints, contact points and a terminal state; a world-action model with independently noised streams turns executing it into programming.">
+<meta property="og:image" content="static/teaser.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#129302;</text></svg>">
+<style>
+  :root {
+    --bg:        #ffffff;
+    --bg-soft:   #f5f7f9;
+    --bg-inset:  #eaeff3;
+    --fg:        #14181c;
+    --fg-muted:  #56616d;
+    --fg-faint:  #86909b;
+    --rule:      #dee4ea;
+    --accent:    #0F6C7C;
+    --accent-2:  #14607F;
+    --accent-soft:#e6f2f4;
+    --warn:      #A8412B;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0e1215; --bg-soft:#151b20; --bg-inset:#1b2228;
+      --fg:#e7ecf0; --fg-muted:#a3aeb8; --fg-faint:#76818c; --rule:#262f37;
+      --accent:#5fc3d4; --accent-2:#78bde0; --accent-soft:#12262b; --warn:#e08e78;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0e1215; --bg-soft:#151b20; --bg-inset:#1b2228;
+    --fg:#e7ecf0; --fg-muted:#a3aeb8; --fg-faint:#76818c; --rule:#262f37;
+    --accent:#5fc3d4; --accent-2:#78bde0; --accent-soft:#12262b; --warn:#e08e78;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--sans); font-size: 16px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+
+  header { padding: 62px 0 34px; text-align: center; border-bottom: 1px solid var(--rule); }
+  h1 {
+    font-family: var(--serif); font-weight: 600;
+    font-size: clamp(27px, 4.2vw, 40px); line-height: 1.15;
+    letter-spacing: -0.012em; margin: 0 0 8px;
+  }
+  h1 .name { color: var(--accent); }
+  .subtitle {
+    font-family: var(--serif); font-size: clamp(17px, 2.3vw, 21px);
+    color: var(--fg-muted); margin: 0 0 26px; line-height: 1.35;
+  }
+  .authors { font-size: 16.5px; margin: 0 0 4px; line-height: 1.9; }
+  .affil { color: var(--fg-muted); font-size: 15px; margin: 0 0 2px; }
+  .corr  { color: var(--fg-faint); font-size: 13.5px; margin: 0; }
+
+  .links { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:26px; }
+  .btn {
+    display:inline-flex; align-items:center; gap:7px;
+    padding:9px 17px; border-radius:999px;
+    background: var(--fg); color: var(--bg);
+    text-decoration:none; font-size:14.5px; font-weight:500;
+    transition: transform .12s ease, opacity .12s ease;
+  }
+  .btn:hover { transform: translateY(-1px); opacity:.87; }
+  .btn.ghost { background:transparent; color:var(--fg); border:1px solid var(--rule); }
+  .btn svg { width:15px; height:15px; fill:currentColor; }
+
+  section { padding: 44px 0; border-bottom: 1px solid var(--rule); }
+  section:last-of-type { border-bottom: none; }
+  h2 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0 0 16px; letter-spacing:-0.005em; }
+  h3 {
+    font-size: 15px; font-weight: 650; letter-spacing:.04em; text-transform: uppercase;
+    color: var(--fg-muted); margin: 30px 0 10px;
+  }
+  p { margin: 0 0 15px; }
+  a { color: var(--accent-2); }
+  .lead { font-size: 17px; }
+  em.term { font-style: normal; color: var(--accent); font-weight: 600; }
+  .bad { color: var(--warn); font-weight: 600; }
+
+  figure { margin: 26px 0 8px; }
+  figure img { width:100%; height:auto; display:block; border:1px solid var(--rule); border-radius:8px; background:#fff; }
+  figcaption { font-size:14px; color:var(--fg-muted); margin-top:10px; line-height:1.55; }
+  figcaption b { color: var(--fg); font-weight:600; }
+
+  /* two-up figure row */
+  .row2 { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:20px; margin:26px 0 8px; }
+  .row2 figure { margin:0; }
+
+  /* the claim / mechanism callout */
+  .claim {
+    background: var(--bg-soft); border:1px solid var(--rule);
+    border-left: 3px solid var(--accent); border-radius: 8px;
+    padding: 16px 18px; margin: 22px 0;
+  }
+  .claim p:last-child { margin-bottom:0; }
+
+  .pillars { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:14px; margin-top:22px; }
+  .pillar { background:var(--bg-soft); border:1px solid var(--rule); border-radius:10px; padding:16px 17px; }
+  .pillar h4 { margin:0 0 6px; font-size:15px; font-weight:650; }
+  .pillar p  { margin:0; font-size:14.5px; color:var(--fg-muted); line-height:1.55; }
+  .pillar .n { display:block; font-family:var(--mono); font-size:12px; color:var(--accent); margin-bottom:8px; }
+
+  /* video */
+  .videobox { background: var(--bg-inset); border:1px solid var(--rule); border-radius:10px; padding:14px; text-align:center; }
+  .videobox video { max-height: 74vh; max-width:100%; width:auto; border-radius:6px; display:block; margin:0 auto; background:#000; }
+
+  /* segment selector */
+  .segbar { display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 14px; }
+  .seg {
+    display:flex; flex-direction:column; align-items:flex-start; gap:1px;
+    padding:8px 14px; border-radius:9px; cursor:pointer;
+    background: var(--bg-soft); border:1px solid var(--rule); color: var(--fg);
+    font-family: inherit; font-size:14px; line-height:1.3; text-align:left;
+    transition: border-color .12s ease, background .12s ease, transform .12s ease;
+  }
+  .seg:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .seg.is-active { background: var(--accent-soft); border-color: var(--accent); }
+  .seg.is-active .seg-t { color: var(--accent); }
+  .seg-t { font-weight:600; }
+  .seg-d { font-family: var(--mono); font-size:11.5px; color: var(--fg-faint); }
+  .seg-hl { border-style: dashed; }
+  .segcap { font-size:14.5px; color:var(--fg-muted); margin-top:14px; line-height:1.6; }
+  .segcap b { color: var(--fg); }
+  .segfull { font-size:13.5px; color:var(--fg-faint); margin-top:-4px; }
+
+  .tablewrap { overflow-x:auto; margin:18px 0 6px; }
+  table { border-collapse:collapse; width:100%; font-size:14.5px; min-width:520px; }
+  caption { caption-side:bottom; text-align:left; font-size:13.5px; color:var(--fg-muted); padding-top:10px; }
+  th, td { padding:8px 12px; text-align:right; border-bottom:1px solid var(--rule); }
+  th:first-child, td:first-child { text-align:left; }
+  thead th { font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-muted); font-weight:600; border-bottom:1.5px solid var(--rule); }
+  tbody tr:last-child td { border-bottom:1.5px solid var(--rule); }
+  td.ours { color:var(--accent); font-weight:650; }
+  tr.oursrow { background: var(--accent-soft); }
+
+  pre { background:var(--bg-inset); border:1px solid var(--rule); border-radius:8px; padding:15px 17px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.65; margin:14px 0; }
+  code { font-family:var(--mono); font-size:.93em; }
+  p code { background:var(--bg-inset); padding:1.5px 5px; border-radius:4px; }
+
+  footer { padding:34px 0 60px; color:var(--fg-faint); font-size:14px; text-align:center; }
+  footer a { color: var(--fg-muted); }
+
+  /* status pill above the title */
+  .venue {
+    display:inline-block; margin:0 0 16px; padding:3px 12px; border-radius:999px;
+    border:1px solid var(--accent); color:var(--accent);
+    font-size:12.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  }
+  table.compact { min-width:0; }
+  .tablegrid { display:grid; grid-template-columns:1fr; gap:4px; }
+  td.m { text-align:left; }
+  .tablegrid .tablewrap { margin:12px 0 0; }
+  .tablenote { font-size:13.5px; color:var(--fg-muted); margin-top:10px; }
+  td[rowspan] { vertical-align:top; color:var(--fg-muted); }
+  figure.narrow { max-width:560px; margin-left:auto; margin-right:auto; }
+  .tablegrid.two { grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:4px 22px; }
+  tr.refrow td { color:var(--fg-faint); font-style:italic; }
+  h1 .name { font-size:.92em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="venue">Under review</p>
+    <h1><span class="name">Keep the Effect, Drop the Actor</span></h1>
+    <p class="subtitle">Programmable Effect-to-Execution<br>World-Action Models</p>
+
+    <p class="authors">Junyi Hu &nbsp;·&nbsp; Zhewen He &nbsp;·&nbsp; Yi Fang<sup>†</sup></p>
+    <p class="affil">New York University Abu Dhabi</p>
+    <p class="corr"><sup>†</sup> corresponding author &nbsp;·&nbsp; <a href="mailto:jh10472@nyu.edu">jh10472@nyu.edu</a></p>
+
+    <nav class="links">
+      <a class="btn" href="pewam.pdf">
+        <svg viewBox="0 0 16 16"><path d="M4 1h5l3 3v11H4V1zm5 1v3h3"/></svg>
+        Paper (PDF)
+      </a>
+      <a class="btn ghost" href="#video">
+        <svg viewBox="0 0 16 16"><path d="M3 2l11 6-11 6V2z"/></svg>
+        Video
+      </a>
+      <a class="btn ghost" href="#citation">
+        <svg viewBox="0 0 16 16"><path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h8v2H2v-2z"/></svg>
+        BibTeX
+      </a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <figure>
+    <img src="static/teaser.png" alt="Copying the demonstrator fails on a held-out task, after a push, on a UR5e and under a new grasp; programming the effect succeeds in all four.">
+    <figcaption><b>Keep the effect, drop the actor.</b> A demonstration records how one arm moved and what
+      happened to the world. Copying the demonstrator (top) ties the task to that motion: a published imitator
+      fails the held-out task, replayed actions miss the target after a 5 cm push and fail on a UR5e, and a
+      replay can only grasp as recorded. PEWAM keeps only the effect, as a program of object keypoints, a
+      terminal state and two contact points (bottom), and re-solves the execution from the live scene: the
+      same episode succeeds, the push is absorbed, a UR5e runs it without retraining, and rotating the contact
+      points turns the grasp.</figcaption>
+  </figure>
+</section>
+
+<section id="abstract">
+  <h2>Abstract</h2>
+  <p class="lead">A robot demonstration records two things in the same frames: what happened to the objects,
+    and how one particular arm made it happen. We condition on the first. A demonstration is compiled into an
+    <em class="term">effect program</em>: the 3D keypoint trajectories of the objects that moved, two points
+    marking where each was held, and the configuration the scene ends in, with the demonstrator removed.
+    <b>PEWAM</b>, a 71.5M-parameter world-action model, generates effect, robot execution, action and terminal
+    state as four streams with independent flow-matching times, so clamping a program and sampling the
+    execution turns inference into programming, re-solved closed loop from the live scene.</p>
+  <p>On held-out LIBERO-Goal tasks, one demonstration's program completes 40 of 90 episodes, where the same
+    backbone given a goal image or language, and published demonstration-conditioned methods, complete at most
+    19; on three of Meta-World's held-out classes it exceeds the best published results, though not on the
+    five-class mean. Because a program is a set of coordinates, a person can edit it: the placement follows a
+    shifted terminal state and the grasp turns with rotated contact points. The same program runs on four robot
+    arms without retraining, and after a push, re-solving completes 23 of 60 episodes where replaying the
+    demonstration completes 6. On a Franka arm, fine-tuned on real demonstrations of other tasks, programs
+    compiled from single human videos complete 36 of 40 trials, against 22 for the same backbone conditioned on
+    the video's last frame as a goal image.</p>
+</section>
+
+<section id="video">
+  <h2>Video</h2>
+  <div class="videobox">
+    <video controls playsinline preload="metadata" poster="static/video_poster.jpg">
+      <source src="static/video.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+  <p class="segcap">The method, the simulated results, and a real Franka arm programmed by single human
+    videos (3:46, with narration).</p>
+</section>
+
+<section id="idea">
+  <h2>The idea</h2>
+  <p>Showing a robot what to do is often easier than describing it. A demonstration, however, records two
+    things in the same frames: what happened to the objects, and how one particular arm made it happen. Watch
+    someone put a bowl on a stove and you learn where the bowl should end up, roughly how it travels and where
+    it can be held; you do not learn to bend your elbow the way they bent theirs.</p>
+  <p>The change in the world is the task, and the demonstrator's motion is one of many ways to produce it. A
+    demonstration is therefore compiled into an effect program: keypoints of each relevant object tracked over
+    time, two contact points recording where the object was held, and the configuration the objects end in.
+    Nothing in the program refers to the robot.</p>
+
+  <div class="pillars">
+    <div class="pillar">
+      <span class="n">01</span>
+      <h4>An actor-free task</h4>
+      <p>The task is written as object keypoints, contact points and a terminal state, with no robot geometry
+        in it.</p>
+    </div>
+    <div class="pillar">
+      <span class="n">02</span>
+      <h4>Editable, and portable across bodies</h4>
+      <p>Moving the terminal state moves the placement, rotating the contact points turns the grasp, and one
+        program runs on four arms.</p>
+    </div>
+    <div class="pillar">
+      <span class="n">03</span>
+      <h4>Progress is a caused effect</h4>
+      <p>Progress through the program counts only effects the robot has caused, so a push becomes a new
+        observation rather than progress.</p>
+    </div>
+  </div>
+</section>
+
+<section id="method">
+  <h2>Method</h2>
+  <p>For each moved object, the <em class="term">effect</em> is the world-frame trajectory of the eight corners
+    and the centre of its oriented box, plus two <em class="term">contact points</em> at the finger-side contact
+    patches at the moment of grasp. Each contact point is a fixed affine combination of the object's keypoints,
+    so it moves rigidly with the object; rotating the contact points asks for another grasp of the same effect.
+    The <em class="term">terminal state</em> is the last frame of the effect. The effect and terminal state
+    contain no robot geometry; the execution and the action describe only the body.</p>
+  <p>One DiT (8 layers, 71.5M parameters) processes observation, effect, execution, action and terminal-state
+    tokens. Each stream draws its own flow-matching time, and a stream given clean contributes no loss, so the
+    set of clean streams defines a query and one set of weights answers every conditional: inverse (effect and
+    terminal state given, execution and action sampled), goal, forward and inverse dynamics.</p>
+  <p>Executing a program is the inverse query. The window of the program that a monotone pointer selects is
+    clamped, the execution is sampled in 20 Euler steps (348 ms on one RTX A6000), the first four actions run,
+    and the loop repeats from the new observation. A push moves an object just as a grasp does, so progress past the
+    first programmed motion counts only once the gripper has closed and the object has moved 1 cm with it;
+    before that, the program is re-anchored to where the object is. On another arm, the joint angles are re-expressed as the training
+    arm's joints at the same end-effector pose, and no weights change.</p>
+
+  <figure>
+    <img src="static/pipeline.png" alt="PEWAM end to end: compiling a demonstration into an effect program, the training data, one model with a flow-matching time per stream, and the closed loop.">
+    <figcaption><b>PEWAM end to end.</b> (1) Compiling a demonstration into an effect program; (2) the
+      training data; (3) one model with a flow-matching time per stream; (4) the closed loop. Bottom: contact
+      as points, and three operators of the same loop.</figcaption>
+  </figure>
+</section>
+
+<section id="results">
+  <h2>Results</h2>
+
+  <h3>One demonstration programs a held-out task</h3>
+  <p>The three held-out LIBERO-Goal tasks contribute no robot data to training. Given one demonstration of such
+    a task, PEWAM completes 40 of 90 episodes from the full program and 49 from its terminal state alone, while
+    the same backbone and data given a goal image, language or no specification complete none. With a bottle,
+    a box and a carton removed from LIBERO-Object training, programs carry over to the removed objects: 67 of
+    90 from the program and 89 from the terminal state. On shelf-place, sweep-into and bin-picking, three of
+    Meta-World's held-out classes, the program exceeds every published result.</p>
+  <div class="tablegrid two">
+    <div class="tablewrap">
+      <table class="compact">
+        <thead><tr><th>LIBERO, held-out tasks</th><th>success (%)</th></tr></thead>
+        <tbody>
+          <tr><td>UWM</td><td>21.1</td></tr>
+          <tr><td>Instant Policy</td><td>5.6</td></tr>
+          <tr><td>ATM</td><td>0.0</td></tr>
+          <tr><td>Zero-WAM</td><td>0.0</td></tr>
+          <tr class="oursrow"><td><b>PEWAM</b></td><td class="ours">44.4</td></tr>
+          <tr class="refrow"><td>Replay of the demonstration<sup>*</sup></td><td>96.7</td></tr>
+          <tr class="refrow"><td>PEWAM, demonstrator's execution<sup>*</sup></td><td>94.4</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tablewrap">
+      <table class="compact">
+        <thead><tr><th>Meta-World, held-out</th><th>shelf</th><th>sweep</th><th>bin</th></tr></thead>
+        <tbody>
+          <tr><td>Meta-World baseline</td><td>0.0</td><td>24.7</td><td>0.3</td></tr>
+          <tr><td>DP3</td><td>12.7</td><td>16.7</td><td>9.3</td></tr>
+          <tr><td>Mamba Policy</td><td>10.0</td><td>9.7</td><td>9.7</td></tr>
+          <tr><td>FreqPolicy</td><td>7.0</td><td>15.7</td><td>11.0</td></tr>
+          <tr><td>FlowPolicy</td><td>0.0</td><td>6.7</td><td>9.0</td></tr>
+          <tr><td>DAMI</td><td>10.7</td><td>28.0</td><td>13.7</td></tr>
+          <tr class="oursrow"><td><b>PEWAM</b></td><td class="ours">22.2</td><td class="ours">100.0</td><td class="ours">52.2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="tablenote">Success rate (%). Left: the three held-out LIBERO-Goal tasks, 90 episodes; each published
+    method reads the same demonstration through its own interface. <sup>*</sup>Reference rows carry the
+    demonstrator's motion. Right: Meta-World test classes from ML10 (shelf-place, sweep-into) and ML45
+    (bin-picking); PEWAM is the mean of three trainings, each over 30 episodes programmed by another episode's
+    demonstration; published policies are fine-tuned on ten demonstrations of the class.</p>
+  <figure>
+    <img src="static/heldout.png" alt="Program and final frame for four held-out tasks.">
+    <figcaption><b>One program per held-out task, executed closed loop.</b> Left of each pair: the program on its
+      demonstration with the robot removed (object track white, terminal state yellow, contact points red and
+      blue). Right: the last frame of the execution, with the object's path in white and its length in steps
+      above. The last pair is a LIBERO-Object episode with a held-out object.</figcaption>
+  </figure>
+
+  <h3>The program is editable</h3>
+  <p>Translating the terminal state moves the realised placement with it: over 30 episodes shifted by ±5 and
+    ±10 cm the slope is 0.71. Rotating the two contact points about the object's vertical axis turns the grasp
+    the arm takes, in the commanded direction at every rotation and by 0.68 of it on average; with edited
+    contacts the model completes 22 to 24 of 30 at ±20° and ±45°.</p>
+  <figure>
+    <img src="static/edit.png" alt="Terminal edits, contact edits and the resulting grasps.">
+    <figcaption><b>Editing the program</b> (bowl task). (a) Terminal edits on a 3×3 grid of contact rotation and
+      terminal shift: realised against commanded shift, filled where the task predicate fires. (b) Contact edits:
+      realised grasp rotation against commanded rotation of the two contact points, median of episode-paired
+      shifts with 95% bootstrap bands. Contacts stored as affine weights (red) are read with the wrong sign.
+      (c) The grasp with contacts rotated by ∓45°, from above.</figcaption>
+  </figure>
+
+  <h3>One effect, many bodies and executions</h3>
+  <p>One program runs on the Panda it was trained with and on a KUKA IIWA, a Kinova Gen3 and a UR5e, completing
+    27, 24, 22 and 16 of 30 bowl episodes with no retraining. Three sampling seeds succeed in 27, 28 and 28 of
+    30 through grasps a median 20.1° apart, and at least one seed succeeds in all 30. After a 5 cm push
+    mid-task, re-solving the remaining program completes 23 of 60 pushed episodes and replaying the
+    demonstration 6.</p>
+  <figure>
+    <img src="static/arms.png" alt="The same program executed on Panda, KUKA IIWA, Kinova Gen3 and UR5e.">
+    <figcaption><b>One program executed on four arms without retraining</b> (episode 227, side view). The
+      episodes take 100, 99, 103 and 162 steps.</figcaption>
+  </figure>
+  <div class="row2">
+    <figure>
+      <img src="static/seeds.png" alt="Three sampling seeds of one program, each with a different grasp.">
+      <figcaption><b>Execution is a free variable.</b> One effect, three grasps: seed 2 takes the bowl from the
+        other side, and all three succeed.</figcaption>
+    </figure>
+    <figure>
+      <img src="static/push.png" alt="Distance of the bowl to its programmed end over time, with and without a push.">
+      <figcaption><b>A 5 cm push at step 28.</b> The bowl's distance to its programmed end. Re-solving the
+        remaining program absorbs the push; replaying the demonstration's actions ends 8.0 cm short.</figcaption>
+    </figure>
+  </div>
+
+  <h3>A real arm programmed by a person</h3>
+  <p>A person performs each task once at a table in front of a Franka Research 3 while a calibrated RGB-D camera
+    records. One click per object on the first frame prompts SAM 2, whose masks and depth give each object's
+    keypoints; the arm then executes the program closed loop from the same camera. The model is the simulation
+    checkpoint fine-tuned on 156 real demonstrations of other tasks, none of the four evaluated. Over four tasks
+    PEWAM completes 36 of 40 trials, against 22 for the same backbone conditioned on the video's last frame as a
+    goal image. With the terminal state shifted 10 cm to either side the arm completes 9 and 9 of 10, and after
+    a 5 cm push 7 of 10.</p>
+  <div class="tablewrap">
+    <table class="compact">
+      <thead><tr><th>Task (successes of 10)</th><th>Goal image</th><th>PEWAM</th></tr></thead>
+      <tbody>
+        <tr><td>Cube to plate</td><td>8</td><td class="ours">10</td></tr>
+        <tr><td>Cube into box</td><td>5</td><td class="ours">10</td></tr>
+        <tr><td>Cube onto tray</td><td>5</td><td class="ours">8</td></tr>
+        <tr><td>Box into bin</td><td>4</td><td class="ours">8</td></tr>
+        <tr class="oursrow"><td><b>Total (of 40)</b></td><td>22</td><td class="ours">36</td></tr>
+      </tbody>
+      <caption>A real Franka arm programmed by human videos. Each program is compiled from one human video; no
+        robot demonstration of these tasks is used.</caption>
+    </table>
+  </div>
+  <figure>
+    <img src="static/real_pair.png" alt="Programs drawn on the first frame of four human videos beside each video's last frame.">
+    <figcaption><b>Programs compiled from real human videos.</b> Each program is drawn on the demonstration's
+      first frame, before the hand enters, beside the demonstration's last frame. Programs 1 and 2 share a
+      scene: the same cube carried to a plate and to a box.</figcaption>
+  </figure>
+  <figure>
+    <img src="static/real_gallery.png" alt="Ten further programs compiled from human videos.">
+    <figcaption><b>Programs compiled from ten further real human demonstrations.</b> Each panel draws the
+      program on the first frame of the demonstration; the inset shows the last frame of the same
+      demonstration.</figcaption>
+  </figure>
+
+  <h3>What makes a program programmable</h3>
+  <p>A model trained on the nine affine weights that define the contact points, the same information, reads
+    every commanded rotation with a negative sign: contact has to be written as points, not weights. Without
+    the paired corpus of several executions per effect, the model follows contact edits less closely.</p>
+  <div class="tablewrap">
+    <table class="compact">
+      <thead><tr><th>Changed</th><th>Measure</th><th>PEWAM</th><th>Variant</th></tr></thead>
+      <tbody>
+        <tr><td>No contact channel</td><td>four arms, bowl / bottle</td><td class="ours">89 / 43</td><td>64 / 10</td></tr>
+        <tr><td>No paired corpus</td><td>contact following</td><td class="ours">0.68</td><td>0.31</td></tr>
+        <tr><td>Demo-clock pointer</td><td>held-out bottle / Σ</td><td class="ours">12 / 40</td><td>1 / 27</td></tr>
+        <tr><td>Native proprioception</td><td>four arms, bowl</td><td class="ours">89</td><td>28</td></tr>
+        <tr><td>Relative effect</td><td>held-out Σ</td><td class="ours">40</td><td>1</td></tr>
+      </tbody>
+      <caption>Core ablations: one component changed per row, on the measure it acts on.</caption>
+    </table>
+  </div>
+</section>
+
+<section id="citation">
+  <h2>Citation</h2>
+<pre>@article{hu2026pewam,
+  title   = {Keep the Effect, Drop the Actor: Programmable Effect-to-Execution World-Action Models},
+  author  = {Hu, Junyi and He, Zhewen and Fang, Yi},
+  journal = {arXiv preprint},
+  year    = {2026}
+}</pre>
+</section>
+
+<footer>
+  <p>New York University Abu Dhabi &nbsp;·&nbsp;
+     <a href="mailto:jh10472@nyu.edu">jh10472@nyu.edu</a></p>
+</footer>
+
+</div>
+</body>
+</html>
